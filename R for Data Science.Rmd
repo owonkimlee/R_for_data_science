@@ -761,3 +761,150 @@ filter(diamonds, carat > 3)
 >Press Alt + Shift + K. What happens? How can you get to the same place using the menus?
 
 shows all keyboard shortcuts. 
+
+# 3.1 Introduction to Data Transformation with dplyr
+Learn how to use Dplyr package. 
+Let's use data from nycflights13 package. 
+
+```{r}
+ install.packages("nycflights13")
+```
+```{r}
+library(nycflights13)
+library(tidyverse)
+```
+
+```{r}
+nycflights13::flights
+```
+This only shows a select few data points. To see all of the data, use 
+```{r}
+View(flights)
+```
+
+dttm type of variables stands for date-times
+lgl: logical, vectors that contain only TRUE or FALSE
+fctr: R uses to represent categorical variables with fixed possible values. 
+date: dates
+
+The five key dplyr functions that allow you to solve the majority of data-manipulation problems
+1. Pick observations by their values (filter())
+2. Reorder the rows (arrage())
+3. Pick variables by their names (select())
+4. create new variables with functions of existing variables (mutate())
+5. Collapse many values down to a single summary (summarize())
+
+- use in conjunction with group_by()
+
+Arguments within each verb
+1. First argument is a data frame
+2. The subsequent arguements describe what to do with the data frame. using "variable_name"
+3. The result is a new data frame. 
+
+# 3.2 Filter Rows with filter()
+```{r}
+filter(flights, month == 1, day == 1)
+```
+to save this dataframe and view it
+```{r}
+(jan1<-filter(flights, month == 1, day == 1))
+```
+
+Comparison signs:
+- >
+- >=
+- <
+- <=
+- !=
+- ==
+
+```{r}
+sqrt(2) ^ 2 == 2
+#> [1] FALSE
+1/49 * 49 == 1
+#> [1] FALSE
+```
+Weird right? This is because of **floating-point numbers**, which happens because computers use *finite* precision arithmetic made of binaries. Remeber that every number you see is an approximation. 
+The fix?
+```{r}
+near(sqrt(2) ^ 2, 2)
+#> [1] TRUE
+near(1 / 49 * 49, 1)
+#> [1] TRUE
+```
+
+Filter() assumes that all the arguments must be true. So the logical operator is **and**. However, you may want to use or or not. 
+&: and
+|: or
+!: not
+xor: exclusive or (x or y but not both)
+
+%in%: checks if a value appears in a list of values, returning TRUE or FALSE.
+So month %in% c(11, 12) reads as "is month in the list 11, 12?"
+
+## Missing values (NA)
+Almost any operation involving an unknown value will also be unknown. 
+NA == NA
+[1] NA
+
+determine if a value is missing by using `is.na()`
+
+filter() only includes rows where the condition is TRUE; it
+excludes both FALSE and NA values. If you want to preserve missing
+values, ask for them explicitly:
+```{r}
+df <- tibble(x = c(1, NA, 3))
+filter(df, x > 1)
+
+filter(df, is.na(x) | x > 1)
+```
+tibble creates a table with one variable x
+
+# 3.3 Arrange Rows with arrrange()
+```{r}
+arrange(flights, year, month, day)
+```
+ascending is the default
+
+to order by descending order:
+```{r}
+arrange(flights, desc(arr_delay))
+```
+
+Missing values are always sorted to the end. 
+
+# 3.4 Select Columns with select()
+Narrows the table down to select columns
+
+```{r}
+select(flights, year, month, day)
+```
+
+You can set a range of columns like excel
+```{r}
+select(flights, year:day)
+```
+
+Select columns except those in a range. 
+```{r}
+select (flights, -(year:day))
+```
+
+Helper functions to use within select()
+- starts_with("abc")
+- ends_with("xyz")
+- contains("ijk")
+- matches("(.)\\1") selects variables that match a regular expression. This one matches any variables that contain repeated characters.
+- num_range("x", 1:3) matches x1, x2, and x3.
+
+rename variables: 
+```{r}
+rename(flights, tail_num = tailnum)
+```
+tail_num is the new variable
+
+What if you want to move a few variables to the front columns?
+```{r}
+select(flights, time_hour, air_time, everything())
+```
+
