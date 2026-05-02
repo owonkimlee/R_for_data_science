@@ -860,6 +860,95 @@ filter(df, is.na(x) | x > 1)
 ```
 tibble creates a table with one variable x
 
+### Q1 
+>Find all flights that
+1. Had an arrival delay of two or more hours
+2. Flew to Houston (IAH or HOU)
+3. Were operated by United, American, or Delta
+4. Departed in summer (July, August, and September)
+5. Arrived more than two hours late, but didn’t leave late
+6. Were delayed by at least an hour, but made up over 30 minutes in flight
+7. Departed between midnight and 6 am (inclusive)
+
+1. 
+```{r}
+filter(flights, arr_delay >= 120)
+```
+2. 
+```{r}
+filter(flights, dest == "HOU" | dest == "IAD")
+```
+```{r}
+filter(flights, dest %in% c("HOU","IAD"))
+```
+3. 
+```{r}
+filter(flights, carrier %in% c("AA", "UA", "DL"))
+```
+4. 
+```{r}
+filter(flights, month %in% c(7,8,9))
+```
+```{r}
+filter(flights, month %in% c(7:9))
+```
+5.
+```{r}
+filter(flights, arr_delay > 120, !(dep_delay > 0))
+```
+6. 
+```{r}
+filter(flights, dep_delay >= 60, arr_delay < (dep_delay - 30))
+```
+7. 
+```{r}
+summary(flights$dep_time)
+```
+```{r}
+filter(flights, dep_time <= 600 | dep_time == 2400)
+```
+You can use modulo operator %%: returns the remainder 
+```{r}
+c(600, 1200, 2400) %% 2400
+```
+filter(flights, dep_time %% 2400 <= 600)
+
+### Q2
+>Another useful dplyr filtering helper is between(). What does it do? Can you use it to simplify the code needed to answer the previous challenges?
+
+between(x, left, right) is equivalent to `x >= left & x <= right`
+x: a vector
+left,right: boundary values. 
+
+```{r}
+filter(flights, between(month, 7, 9))
+```
+
+### Q3 
+>How many flights have a missing dep_time? What other variables are missing? What might these rows represent?
+
+```{r}
+filter(flights, is.na(dep_time))
+```
+8255 values with dep_time == NA
+
+dep_delay, arr_time, arr_delay, air_time are also missing. 
+
+These seem to be canceled flights. 
+
+```{r}
+summary(flights)
+```
+includes information about missing variables
+
+### Q4
+>Why is NA ^ 0 not missing? Why is NA | TRUE not missing? Why is FALSE & NA not missing? Can you figure out the general rule? (NA * 0 is a tricky counterexample!)
+
+Anything raised to the 0th power is 1.
+boolean symbols trigger R to determine whether it is TRUE or FALSE. 
+`NA*0` is not possible because `r `inf*0` returnes "not a number"
+
+
 # 3.3 Arrange Rows with arrrange()
 ```{r}
 arrange(flights, year, month, day)
@@ -872,6 +961,58 @@ arrange(flights, desc(arr_delay))
 ```
 
 Missing values are always sorted to the end. 
+
+### Q1
+> How could you use arrange() to sort all missing values to the start? (Hint: use is.na()).
+
+## To put NA values first, we can add an indicator of whether the column has a missing value. 
+This code finds the flights with the latest departure times by:
+```{r}
+arrange(flights, dep_time) %>%
+  tail()
+```
+
+1. arrange(flights, dep_time) — sorts all flights by departure time in ascending order (earliest first, latest last)
+2. %>% — the pipe operator, passes the result into the next function
+3. tail() — grabs the last 6 rows of the sorted data
+
+So you're sorting earliest to latest, then looking at the bottom of the list to see the latest departures.
+It's a clever trick — instead of using desc() to sort latest first, you sort ascending and just peek at the tail end.
+tail() is the opposite of head() which grabs the first 6 rows. Both default to 6 rows but you can change it:
+
+Then we sort by the missing indicator column and the column of interest. For example, to sort the data frame by departure time (dep_time) in ascending order but NA values first, run the following.
+
+```{r}
+arrange(flights, desc(is.na(dep_time)), dep_time)
+```
+
+The flights will first be sorted by desc(is.na(dep_time)). Since desc(is.na(dep_time)) is either TRUE when dep_time is missing, or FALSE, when it is not, the rows with missing values of dep_time will come first, since TRUE > FALSE.
+
+### Q2
+> Sort flights to find the most delayed flights. Find the flights that left earliest.
+
+```{r}
+arrange(flights, desc(dep_time))
+```
+
+```{r}
+arrange(flights, dep_time)
+```
+
+### Q3 
+>Sort flights to find the fastest flights.
+
+```{r}
+head(arrange(flights, desc(distance / air_time)))
+```
+
+### Q4
+>Which flights traveled the longest? Which traveled the shortest?
+
+```{r}
+head(arrange(flights, air_time))
+head(arrange(flights, desc(air_time)))
+```
 
 # 3.4 Select Columns with select()
 Narrows the table down to select columns
@@ -906,5 +1047,61 @@ tail_num is the new variable
 What if you want to move a few variables to the front columns??
 ```{r}
 select(flights, time_hour, air_time, everything())
+```
+
+### Q1
+>Brainstorm as many ways as possible to select dep_time, dep_delay, arr_time, and arr_delay from flights.
+
+```{r}
+select(flights, dep_time, dep_delay, arr_time, arr_delay)
+select(flights, starts_with("dep")|starts_with("arr"))
+```
+Some i didnt think of
+```{r}
+select(flights, 4, 6, 7, 9)
+select(flights, all_of(c("dep_time", "dep_delay", "arr_time", "arr_delay")))
+select(flights, any_of(c("dep_time", "dep_delay", "arr_time", "arr_delay")))
+```
+At first I thought, why do this when you can just do my way?
+Well it's helpful if you store the variables in a new grouped variable
+```{r}
+variables <- c("dep_time", "dep_delay", "arr_time", "arr_delay")
+select(flights, all_of(variables))
+```
+
+### Q2
+>What happens if you include the name of a variable multiple times in a select() call?
+
+Ignores the second one. 
+This is why "everything" works without duplication. 
+
+### Q3
+>What does the one_of() function do? Why might it be helpful in conjunction with this vector?
+
+The one_of() function selects variables with a character vector (c("string", "bean")) rather than unquoted variable name arguments. This function is useful because it is easier to programmatically generate character vectors with variable names than to generate unquoted variable names, which are easier to type.
+
+select only takes unquoted characters. vectors only take quoted vectors. 
+
+```{r}
+vars <- c("year", "month", "day", "dep_delay", "arr_delay")
+select(flights, one_of(vars))
+```
+
+BUT!! Now it is separated into all_of and any_of
+These functions differ in their strictness. The function all_of() will raise an error if one of the variable names is not present, while any_of() will ignore it.
+
+In the most recent versions of dplyr, the one_of() function is less necessary due to new behavior in the selection functions. The select() function can now accept the name of a vector containing the variable names you wish to select
+However there is a problem with the previous code. The name vars could refer to a column named vars in flights or a different variable named vars. What th code does will depend on whether or not vars is a column in flights. If vars was a column in flights, then that code would only select the vars column.
+
+### Q4
+>Does the result of running the following code surprise you? How do the select helpers deal with case by default? How can you change that default?
+
+```{r}
+select(flights, contains("TIME"))
+```
+It surprises me because it includes the variables with lower case "time" This is because dplyr also works with case insensitive variables in databases. 
+
+```{r}
+select(flights, contains("TIME", ignore.case = FALSE))
 ```
 
