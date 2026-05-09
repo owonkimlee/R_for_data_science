@@ -1105,3 +1105,38 @@ It surprises me because it includes the variables with lower case "time" This is
 select(flights, contains("TIME", ignore.case = FALSE))
 ```
 
+# 3.5 Add variables with mutate()
+Create column that is a function of other columns with mutate()
+Always adds the new mutate column to the end
+
+```{r}
+flights_sml <- select(flights, year:day, ends_with("delay"), distance, air_time)
+
+mutate(flights_sml, gain = arr_delay - dep_delay, speed = distance / air_time * 60)
+```
+
+Note that it adds that column to the table permanenetly. 
+
+If you only want to keep the new variables, use transmute():
+```{r}
+transmute(flights,
+gain = arr_delay - dep_delay,
+hours = air_time / 60,
+gain_per_hour = gain / hours)
+```
+
+Some functions:
+%%: remainder of division
+%/%: integer quotient of division
+log
+log2: recommended because a change of 1 in log2 scale is doubling of the variable. 
+log10
+lead(): shifts the value forward by 1
+lag(): shifts the value backward by 1
+cumsum(), cumprod(), cummin(), cummax(): cumulative measures
+There are a number of ranking functions, but you should start with min_rank(). It does the most usual type of ranking (e.g., first, second, third, fourth). The default gives the smallest values the smallest ranks; use desc(x) to give the largest values the smallest ranks
+row_number(): doesn't give same numbers the same rank. 
+dense_rank():works like min_rank but doesnt have gaps. Ex. 1,2,2,3
+percent_rank(): counts the total number of values less than x_i and divides it by the number of obs.  
+cume_dist(): counts the total number of values less than or equal to x_i and divides it by the number of obs. 
+ntile(x, n): divides the length of vector x into n groups. orders it from lowest to highest by default. 
